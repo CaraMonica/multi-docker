@@ -1,0 +1,43 @@
+name: Deploy MultiDocker
+run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+on:
+ push:
+      branches:
+        - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      # - run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+      - run: docker build -t caramonica/react-test -f ./client/Dockerfile.dev ./client
+      - run: docker run -e CI=true caramonica/react-test npm test
+
+      - run: docker build -t caramonica/multi-client ./client
+      - run: docker build -t caramonica/multi-nginx ./nginx
+      - run: docker build -t caramonica/multi-server ./server
+      - run: docker build -t caramonica/multi-worker ./worker
+
+      - run: docker push caramonica/multi-client
+      - run: docker push caramonica/multi-nginx
+      - run: docker push caramonica/multi-server
+      - run: docker push caramonica/multi-worker
+
+      - name: Generate deployment package
+        run: zip -r deploy.zip . -x '*.git*'
+
+      # - name: Deploy to EB
+      #   uses: einaregilsson/beanstalk-deploy@v18
+      #   with:
+      #     aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+      #     aws_secret_key: ${{ secrets.AWS_SECRET_KEY }}
+
+      #     application_name: docker-react
+      #     environment_name: Dockerreact-env
+      #     existing_bucket_name: elasticbeanstalk-eu-west-2-102536932582
+      #     region: eu-west-2
+
+      #     version_label: ${{ github.sha }}
+      #     deployment_package: deploy.zip
+      #     wait_for_environment_recovery: 180
